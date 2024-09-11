@@ -3,19 +3,31 @@ import java.util.Scanner;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 class Main {
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, InterruptedException {
         System.out.println("Welcome! this will 100% work ");
+        System.out.println("Use '!help' to get some info ");
         try (Scanner inputScanner = new Scanner(System.in)) {
             boolean isRunning = true;
             while (isRunning) {
-                System.out.print("> ");
+                System.out.print("(enter file name)> ");
                 String userInput = inputScanner.nextLine();
                 if (userInput.startsWith("!exit")) {
                     isRunning = false;
                     System.out.println("baiii >.<");
 
+                } else if (userInput.startsWith("!help")) {
+                    System.out.println(
+                            "Welcome! This is a brainfuck interpreter written in java. To get started, at the prompt, just enter the filename of the code you want to run. Or, you can run some commands. \nCommands:\n!exit - exits the program\n!help - displays this help message\n!ex [command] - will run [command] in your native shell");
+
+                } else if (userInput.startsWith("!ex")) {
+                    String Command = userInput.replaceFirst("!ex", "");
+                    System.out.println("<-- BEGINNING OF SHELL OUTPUT -->\n");
+                    ShellExecutor.runCommand(Command);
+                    System.out.println("\n<-- END OF SHELL OUTPUT -->");
                 } else {
                     String code = BrainfuckReader.getCode(userInput);
                     Interpreter.parse(code);
@@ -117,4 +129,33 @@ class BrainfuckReader {
         }
         return "";
     }
+}
+
+class ShellExecutor {
+    public static void runCommand(String command) throws IOException, InterruptedException {
+        ProcessBuilder processBuilder;
+        String os = System.getProperty("os.name").toLowerCase();
+        if (os.contains("win")) {
+            processBuilder = new ProcessBuilder("cmd.exe", "/c", command);
+        } else {
+            processBuilder = new ProcessBuilder("bash", "-c", command);
+        }
+
+        Process process = processBuilder.start();
+        process.waitFor();
+
+        try (BufferedReader processReader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = processReader.readLine()) != null) {
+                System.out.println(line);
+            }
+        }
+        try (BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = errorReader.readLine()) != null) {
+                System.err.println(line);
+            }
+        }
+    }
+
 }
